@@ -1,0 +1,12 @@
+{
+    "PREFIX": {
+        "description": "WutheringWavesUID插件前缀，用于触发插件，暂不支持空前缀",
+        "type": "list",
+        "items": {
+            "type": "string",
+            "hint": "前缀"
+        },
+        "hint": "默认为ww",
+        "default": ["ww"]
+    }
+}
