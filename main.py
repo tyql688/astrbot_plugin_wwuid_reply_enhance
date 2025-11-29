@@ -5,15 +5,17 @@ from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 from astrbot.core.config.astrbot_config import AstrBotConfig
-from astrbot.core.message.components import Image, Plain, Reply
+from astrbot.core.message.components import Image, Plain
 from astrbot.core.star.filter.event_message_type import EventMessageType
+
+from .utils import extract_quoted_payload
 
 
 @register(
     "wwuid_reply_enhance",
     "tyql688",
     "基于astrbot的wwuid的回复增强。",
-    "1.0.0",
+    "1.1",
     "https://github.com/tyql688/astrbot_plugin_wwuid_reply_enhance",
 )
 class WwuidReplyEnhance(Star):
@@ -29,7 +31,7 @@ class WwuidReplyEnhance(Star):
             )
             return
 
-        pattern = r"上传.*?面板图$"
+        pattern = r"上传.*?((面板|面包|🍞|背景)图)$"
         match = re.search(pattern, event.message_str)
         if not match:
             logger.debug(
@@ -37,17 +39,20 @@ class WwuidReplyEnhance(Star):
             )
             return
 
-        # 解析引用内容
-        imgs = []
-        for _message in event.get_messages():
-            if isinstance(_message, Reply) and _message.chain:
-                for comp in _message.chain:
-                    if isinstance(comp, Image):
-                        event.message_obj.message.append(comp)
-                        imgs.append(comp)
+        # 使用工具类解析引用内容 (支持普通图片和合并转发内的图片)
+        image_urls = await extract_quoted_payload(event)
 
-        if not imgs:
+        if not image_urls:
             return
+
+        # 将 URL 转换为 Image 组件
+        imgs = []
+        for url in image_urls:
+            img = Image.fromURL(url)
+            # 确保 url 字段存在，方便下游插件读取
+            if not img.url:
+                img.url = url
+            imgs.append(img)
 
         # 开始伪造消息
         message_obj = event.message_obj
